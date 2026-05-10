@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Endless Revolution — DDR</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    :root {
+      --bg-1: #0f0c29;
+      --bg-2: #302b63;
+      --bg-3: #24243e;
+      --neon-pink: #ff3cac;
+      --neon-blue: #00e5ff;
+      --neon-green: #39ff14;
+      --neon-yellow: #ffe600;
+      --panel: rgba(20, 20, 40, 0.7);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --text: #f5f5ff;
+      --text-dim: #b8b8d8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg-1), var(--bg-2), var(--bg-3));
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      gap: 20px;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .panel {
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .title {
+      text-align: center;
+      margin: 0 0 8px;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      margin: 0 0 16px;
+    }
+
+    .storage-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .storage-badge.local {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-dim);
+    }
+    .storage-badge.cloud {
+      background: var(--neon-yellow);
+      color: #222;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--neon-blue); }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      color: white;
+    }
+    button:active { transform: scale(0.96); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--neon-pink), #c724b1);
+      box-shadow: 0 4px 12px rgba(255, 60, 172, 0.3);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--panel-border);
+    }
+
+    .difficulty-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .diff-btn {
+      padding: 12px 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: white;
+    }
+    .diff-btn.light { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #003a1f; }
+    .diff-btn.medium { background: linear-gradient(135deg, #fbc531, #f0932b); color: #5a3a00; }
+    .diff-btn.hard { background: linear-gradient(135deg, #eb4d4b, #c0392b); }
+    .diff-btn.active {
+      border-color: white;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+    }
+
+    /* ---- center game area ---- */
+    .game-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+    .stat {
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-top: 2px;
+    }
+    .stat-value.combo { color: var(--neon-yellow); }
+    .stat-value.combo.fire { animation: shake 0.3s infinite; }
+
+    @keyframes shake {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-1px, 1px); }
+      75% { transform: translate(1px, -1px); }
+    }
+
+    /* health bar */
+    .health-wrap {
+      width: 100%;
+      height: 14px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 7px;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+    }
+    .health-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-green), #2ecc71);
+      transition: width 0.3s, background 0.3s;
+    }
+    .health-fill.warn { background: linear-gradient(90deg, #f39c12, #e67e22); }
+    .health-fill.danger { background: linear-gradient(90deg, #e74c3c, #c0392b); animation: pulseDanger 0.6s infinite; }
+
+    @keyframes pulseDanger {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* play field */
+    .field {
+      position: relative;
+      width: 480px;
+      height: 560px;
+      background: rgba(0, 0, 0, 0.45);
+      border: 2px solid var(--panel-border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+    }
+
+    /* lane lines */
+    .lanes {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      pointer-events: none;
+    }
+    .lane {
+      border-right: 1px dashed rgba(255, 255, 255, 0.08);
+    }
+    .lane:last-child { border-right: none; }
+
+    /* target zone — at the TOP of the field, like classic DDR */
+    .target-row {
+      position: absolute;
+      top: 30px;
+      left: 0; right: 0;
+      height: 100px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: center;
+      justify-items: center;
+      z-index: 2;
+    }
+    .target {
+      width: 80px; height: 80px;
+      border: 3px solid rgba(255, 255, 255, 0.35);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.6rem; font-weight: 800;
+      color: rgba(255, 255, 255, 0.4);
+      transition: all 0.1s;
+      background: rgba(0, 0, 0, 0.3);
+    }
+    .target.hit-flash {
+      border-color: var(--neon-green);
+      color: white;
+      box-shadow: 0 0 30px var(--neon-green), inset 0 0 20px var(--neon-green);
+      transform: scale(1.1);
+    }
+    .target.miss-flash {
+      border-color: var(--neon-pink);
+      color: var(--neon-pink);
+      box-shadow: 0 0 30px var(--neon-pink);
+    }
+
+    /* arrows */
+    .arrow {
+      position: absolute;
+      width: 80px; height: 80px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.6rem; font-weight: 800;
+      color: white;
+      will-change: transform;
+      transition: opacity 0.15s;
+    }
+    .arrow.up    { background: linear-gradient(135deg, #ff5e7e, #ff3cac); box-shadow: 0 0 20px rgba(255, 60, 172, 0.5); }
+    .arrow.down  { background: linear-gradient(135deg, #4facfe, #00e5ff); box-shadow: 0 0 20px rgba(0, 229, 255, 0.5); }
+    .arrow.left  { background: linear-gradient(135deg, #43e97b, #38f9d7); box-shadow: 0 0 20px rgba(67, 233, 123, 0.5); }
+    .arrow.right { background: linear-gradient(135deg, #fbc531, #f0932b); box-shadow: 0 0 20px rgba(251, 197, 49, 0.5); }
+    .arrow.fading { opacity: 0; transform: translateY(-20px) scale(1.4); }
+
+    /* hit popup text */
+    .popup {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 150px;
+      font-size: 2rem;
+      font-weight: 800;
+      pointer-events: none;
+      animation: popUp 0.7s ease-out forwards;
+      z-index: 3;
+      text-shadow: 0 0 12px currentColor;
+    }
+    .popup.perfect { color: var(--neon-yellow); }
+    .popup.good { color: var(--neon-green); }
+    .popup.miss { color: var(--neon-pink); }
+
+    @keyframes popUp {
+      0% { opacity: 0; transform: translate(-50%, 10px) scale(0.7); }
+      30% { opacity: 1; transform: translate(-50%, -10px) scale(1.2); }
+      100% { opacity: 0; transform: translate(-50%, -40px) scale(1); }
+    }
+
+    /* on-screen keys */
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      width: 100%;
+    }
+    .key {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 1.8rem;
+      font-weight: 800;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.1s;
+    }
+    .key:hover { background: rgba(255, 255, 255, 0.12); }
+    .key.pressed {
+      background: var(--neon-blue);
+      color: #002b35;
+      transform: scale(0.95);
+    }
+    .key-label {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+      letter-spacing: 1px;
+    }
+
+    /* leaderboard */
+    .leader-section { margin-bottom: 16px; }
+    .leader-section:last-child { margin-bottom: 0; }
+    .leader-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .leader-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+    }
+    .leader-row .name { font-weight: 600; }
+    .leader-row .score { color: var(--neon-yellow); font-weight: 800; }
+    .leader-empty {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      font-style: italic;
+      padding: 8px 0;
+    }
+
+    /* overlay screens */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 10;
+      padding: 20px;
+      text-align: center;
+    }
+    .overlay h2 {
+      font-size: 2.4rem;
+      margin: 0;
+      background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .overlay .big-score {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--neon-yellow);
+    }
+    .overlay .substats {
+      display: flex;
+      gap: 24px;
+      color: var(--text-dim);
+    }
+    .overlay .substats span strong {
+      display: block;
+      font-size: 1.4rem;
+      color: var(--text);
+    }
+
+    .help {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+<div id="app" class="app">
+
+  <!-- LEFT PANEL ------------------------------------------------------ -->
+  <aside class="panel">
+    <span class="storage-badge" :class="storageMode">
+      {{ storageMode === 'cloud' ? '☁ Cloud scores' : '💾 Local scores' }}
+    </span>
+    <h1 class="title">Endless Revolution</h1>
+    <p class="subtitle">A keyboard rhythm game</p>
+
+    <label>Player name</label>
+    <input
+      type="text"
+      v-model="inputUsername"
+      placeholder="Enter your name"
+      @keyup.enter="setUsername"
+      maxlength="20"
+    >
+    <button class="btn-primary" style="width:100%; margin-top:8px;" @click="setUsername">
+      {{ username ? 'Update name' : 'Save' }}
+    </button>
+    <p v-if="username" style="margin-top:10px; font-size:0.9rem;">
+      Playing as <strong>{{ username }}</strong>
+    </p>
+
+    <div style="margin-top:24px;">
+      <label>Difficulty</label>
+      <div class="difficulty-row">
+        <button
+          class="diff-btn light"
+          :class="{ active: selectedDifficulty === 'light' }"
+          @click="selectedDifficulty = 'light'"
+        >Light</button>
+        <button
+          class="diff-btn medium"
+          :class="{ active: selectedDifficulty === 'medium' }"
+          @click="selectedDifficulty = 'medium'"
+        >Medium</button>
+        <button
+          class="diff-btn hard"
+          :class="{ active: selectedDifficulty === 'hard' }"
+          @click="selectedDifficulty = 'hard'"
+        >Hard</button>
+      </div>
+    </div>
+
+    <button
+      class="btn-primary"
+      style="width:100%; font-size:1.1rem; padding:14px; margin-top:8px;"
+      @click="startGame"
+      :disabled="state === 'playing'"
+    >
+      {{ state === 'idle' || state === 'gameover' ? '▶  Start Game' : 'Playing…' }}
+    </button>
+
+    <div v-if="state === 'playing'" style="display:flex; gap:8px; margin-top:8px;">
+      <button class="btn-secondary" style="flex:1;" @click="togglePause">
+        {{ paused ? '▶ Resume' : '⏸ Pause' }}
+      </button>
+      <button class="btn-secondary" style="flex:1;" @click="endGame(true)">
+        ⏹ End
+      </button>
+    </div>
+
+    <div class="help" style="margin-top:18px;">
+      Press <span class="kbd">↑</span> <span class="kbd">↓</span>
+      <span class="kbd">←</span> <span class="kbd">→</span> when an arrow
+      reaches the target zone at the top.<br><br>
+      <span class="kbd">P</span> pauses, <span class="kbd">Esc</span> ends the game.
+    </div>
+  </aside>
+
+  <!-- CENTER GAME ----------------------------------------------------- -->
+  <main class="game-wrap">
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-label">Score</div>
+        <div class="stat-value">{{ score.toLocaleString() }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Combo</div>
+        <div class="stat-value combo" :class="{ fire: combo >= 10 }">
+          {{ combo }}<span v-if="combo >= 10">🔥</span>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Misses</div>
+        <div class="stat-value">{{ misses }} / {{ maxMisses }}</div>
+      </div>
+    </div>
+
+    <div class="health-wrap">
+      <div
+        class="health-fill"
+        :class="{ warn: healthPct < 50, danger: healthPct < 25 }"
+        :style="{ width: healthPct + '%' }"
+      ></div>
+    </div>
+
+    <div class="field">
+      <!-- lane separators -->
+      <div class="lanes">
+        <div class="lane"></div>
+        <div class="lane"></div>
+        <div class="lane"></div>
+        <div class="lane"></div>
+      </div>
+
+      <!-- target zone -->
+      <div class="target-row">
+        <div
+          v-for="dir in directions"
+          :key="dir"
+          class="target"
+          :class="{
+            'hit-flash': hitFlash[dir],
+            'miss-flash': missFlash[dir]
+          }"
+        >{{ arrowSymbol(dir) }}</div>
+      </div>
+
+      <!-- floating arrows -->
+      <div
+        v-for="arrow in arrows"
+        :key="arrow.id"
+        class="arrow"
+        :class="[arrow.direction, { fading: arrow.fading }]"
+        :style="arrowStyle(arrow)"
+      >{{ arrowSymbol(arrow.direction) }}</div>
+
+      <!-- popup text -->
+      <div
+        v-for="p in popups"
+        :key="p.id"
+        class="popup"
+        :class="p.kind"
+      >{{ p.text }}</div>
+
+      <!-- intro overlay -->
+      <div v-if="state === 'idle'" class="overlay">
+        <h2>Ready?</h2>
+        <p class="help">Pick a difficulty and hit Start.</p>
+      </div>
+
+      <!-- pause overlay -->
+      <div v-if="paused && state === 'playing'" class="overlay">
+        <h2>Paused</h2>
+        <button class="btn-primary" @click="togglePause">Resume</button>
+      </div>
+
+      <!-- game over overlay -->
+      <div v-if="state === 'gameover'" class="overlay">
+        <h2>Game Over</h2>
+        <div class="big-score">{{ score.toLocaleString() }}</div>
+        <div class="substats">
+          <span><strong>{{ totalHits }}</strong>Hits</span>
+          <span><strong>{{ misses }}</strong>Misses</span>
+          <span><strong>{{ maxComboReached }}</strong>Best Combo</span>
+          <span><strong>{{ accuracy }}%</strong>Accuracy</span>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button class="btn-primary" @click="startGame">Play Again</button>
+          <button class="btn-secondary" @click="state = 'idle'">Main Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="keys">
+      <div
+        v-for="dir in directions"
+        :key="'key-'+dir"
+        class="key"
+        :class="{ pressed: pressedKey === dir }"
+        @click="onKeyPress(dir)"
+      >
+        {{ arrowSymbol(dir) }}
+        <span class="key-label">{{ dir }}</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL ----------------------------------------------------- -->
+  <aside class="panel">
+    <h2 class="title" style="font-size:1.2rem;">Leaderboard</h2>
+    <p class="subtitle">Top scores per difficulty</p>
+
+    <div v-for="diff in ['light', 'medium', 'hard']" :key="diff" class="leader-section">
+      <div class="leader-title">{{ diff }}</div>
+      <div v-if="leaderboard[diff].length === 0" class="leader-empty">No scores yet</div>
+      <div
+        v-for="(entry, i) in leaderboard[diff]"
+        :key="i"
+        class="leader-row"
+      >
+        <span class="name">#{{ i + 1 }} {{ entry.username }}</span>
+        <span class="score">{{ entry.score.toLocaleString() }}</span>
+      </div>
+    </div>
+
+    <button class="btn-secondary" style="width:100%; margin-top:12px;" @click="loadLeaderboard">
+      🔄 Refresh
+    </button>
+  </aside>
+</div>
+
+<!--
+  When USE_FIRESTORE in index.js is set to true, change this script tag to:
+      <script type="module" src="index.js"></script>
+  so that the Firebase ES module imports work.
+-->
+<script src="index.js"></script>
+</body>
+</html>
